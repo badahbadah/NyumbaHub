@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'auth/login_screen.dart';
+import 'hostels/hostel_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -27,13 +28,26 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Text(
-          'Welcome, ${authProvider.currentUser?.fullName ?? ''}!\nRole: ${authProvider.currentUser?.role ?? ''}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 18),
-        ),
-      ),
+      body: Column(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Text(
+      'Welcome, ${authProvider.currentUser?.fullName ?? ''}!\nRole: ${authProvider.currentUser?.role ?? ''}',
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 18),
+    ),
+    const SizedBox(height: 24),
+    ElevatedButton.icon(
+      icon: const Icon(Icons.apartment),
+      label: const Text('Browse Hostels'),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const HostelListScreen()),
+        );
+      },
+    ),
+  ],
+),
     );
   }
 }
