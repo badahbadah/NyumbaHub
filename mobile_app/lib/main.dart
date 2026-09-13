@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
-import 'screens/auth_wrapper.dart';
+import 'screens/root_shell.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const NyumbaHubApp());
@@ -16,8 +17,9 @@ class NyumbaHubApp extends StatelessWidget {
       create: (_) => AuthProvider(),
       child: MaterialApp(
         title: 'NyumbaHub',
-        theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-        home: const AuthWrapper(),
+        theme: AppTheme.light(),
+        home: const RootShell(),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

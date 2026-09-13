@@ -21,4 +21,22 @@ async function updateBookingPaymentStatus(id, { payment_status, status, payment_
   return result.rows[0];
 }
 
-module.exports = { findBookingByStudentAndHostel, getBookingById, updateBookingPaymentStatus };
+async function getBookingsByStudentId(student_id) {
+  const result = await pool.query(
+    `SELECT bookings.*, hostels.name AS hostel_name, rooms.room_type
+     FROM bookings
+     JOIN hostels ON hostels.id = bookings.hostel_id
+     JOIN rooms ON rooms.id = bookings.room_id
+     WHERE bookings.student_id = $1
+     ORDER BY bookings.created_at DESC`,
+    [student_id]
+  );
+  return result.rows;
+}
+
+module.exports = {
+  findBookingByStudentAndHostel,
+  getBookingById,
+  updateBookingPaymentStatus,
+  getBookingsByStudentId,
+};

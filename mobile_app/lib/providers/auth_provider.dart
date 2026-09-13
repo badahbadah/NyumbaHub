@@ -77,12 +77,10 @@ Future<void> checkAuthStatus() async {
   try {
     final data = await _apiService.fetchMe();
     _currentUser = AppUser.fromJson(data['user']);
+    notifyListeners();
   } catch (e) {
     _currentUser = null;
-    await _apiService.logout(); // clear an invalid/expired token
-  } finally {
-    _isCheckingSession = false;
-    notifyListeners();
+    await _apiService.logout();
   }
 }
 }

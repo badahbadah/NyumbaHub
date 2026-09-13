@@ -1,4 +1,5 @@
 const pool = require('../models/db');
+const { getBookingsByStudentId } = require('../models/bookingModel');
 
 exports.create = async (req, res) => {
   const client = await pool.connect(); // borrow one dedicated connection for this whole transaction
@@ -46,5 +47,15 @@ exports.create = async (req, res) => {
     client.release();
     console.error(err);
     res.status(500).json({ error: 'Something went wrong while creating the booking' });
+  }
+};
+
+exports.listMine = async (req, res) => {
+  try {
+    const bookings = await getBookingsByStudentId(req.user.id);
+    res.json({ bookings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong while fetching your bookings' });
   }
 };
