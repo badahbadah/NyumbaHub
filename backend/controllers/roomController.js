@@ -1,5 +1,5 @@
 const { getHostelById } = require('../models/hostelModel');
-const { createRoom, getRoomsByHostelId } = require('../models/roomModel');
+const { createRoom, getRoomsByHostelId, getRoomById, updateAvailableBeds } = require('../models/roomModel');
 
 exports.list = async (req, res) => {
   try {
@@ -22,9 +22,7 @@ exports.create = async (req, res) => {
     }
 
     const hostel = await getHostelById(hostelId);
-    if (!hostel) {
-      return res.status(404).json({ error: 'Hostel not found' });
-    }
+    if (!hostel) return res.status(404).json({ error: 'Hostel not found' });
     if (hostel.owner_id !== req.user.id) {
       return res.status(403).json({ error: 'You can only add rooms to your own hostel' });
     }
@@ -34,5 +32,33 @@ exports.create = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong while creating the room' });
+  }
+};
+
+exports.updateBeds = async (req, res) => {
+  try {
+    const { hostelId, roomId } = req.params;
+    const { available_beds } = req.body;
+
+    const hostel = await getHostelById(hostelId);
+    if (!hostel) return res.status(404).json({ error: 'Hostel not found' });
+    if (hostel.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'You can only update rooms in your own hostel' });
+    }
+
+    const room = await getRoomById(roomId);
+    if (!room || room.hostel_id !== Number(hostelId)) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    if (available_beds === undefined || available_beds < 0 || available_beds > room.total_beds) {
+      return res.status(400).json({ error: `available_beds must be between 0 and ${room.total_beds}` });
+    }
+
+    const updated = await updateAvailableBeds(roomId, available_beds);
+    res.json({ message: 'Room availability updated', room: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong while updating room availability' });
   }
 };

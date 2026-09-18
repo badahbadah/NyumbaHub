@@ -13,4 +13,15 @@ const createHostelSchema = z.object({
   has_study_area: z.boolean().optional(),
 });
 
-module.exports = { createHostelSchema };
+const updateHostelSchema = z.object({
+  name: z.string().min(2).optional(),
+  institution_id: z.coerce.number().int().positive().optional().nullable(),
+  description: z.string().optional(),
+  has_water_backup: z.boolean().optional(),
+  has_electricity_backup: z.boolean().optional(),
+  has_security: z.boolean().optional(),
+  has_wifi: z.boolean().optional(),
+  has_study_area: z.boolean().optional(),
+});
+
+module.exports = { createHostelSchema, updateHostelSchema };

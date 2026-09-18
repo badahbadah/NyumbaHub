@@ -34,4 +34,9 @@ async function getUserById(id) {
   return result.rows[0];
 }
 
-module.exports = { createUser, findUserByPhone, findUserByIdentifier, getUserById };
+async function getUserBasicById(id) {
+  const result = await pool.query('SELECT id, full_name, role FROM users WHERE id = $1', [id]);
+  return result.rows[0];
+}
+
+module.exports = { createUser, findUserByPhone, findUserByIdentifier, getUserById, getUserBasicById };

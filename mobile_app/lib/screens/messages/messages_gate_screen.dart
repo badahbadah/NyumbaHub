@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/auth_gate.dart';
+import 'conversations_list_screen.dart';
 
 class MessagesGateScreen extends StatefulWidget {
   const MessagesGateScreen({super.key});
@@ -19,7 +20,7 @@ class _MessagesGateScreenState extends State<MessagesGateScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Messages')),
       body: isLoggedIn
-          ? const Center(child: Text('Your conversations will appear here.'))
+          ? const ConversationsListScreen()
           : Center(
               child: Padding(
                 padding: const EdgeInsets.all(28),

@@ -26,9 +26,18 @@ async function getConversationById(id) {
   return result.rows[0];
 }
 
+// Includes a per-conversation has_unread flag, so the UI can show
+// exactly which chats have new messages, not just a total count.
 async function getConversationsForUser(user_id) {
   const result = await pool.query(
-    `SELECT * FROM conversations
+    `SELECT conversations.*,
+       EXISTS (
+         SELECT 1 FROM messages
+         WHERE messages.conversation_id = conversations.id
+           AND messages.sender_id != $1
+           AND messages.is_read = false
+       ) AS has_unread
+     FROM conversations
      WHERE initiator_id = $1 OR recipient_id = $1
      ORDER BY created_at DESC`,
     [user_id]

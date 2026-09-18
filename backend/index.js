@@ -13,6 +13,10 @@ const app = express();
 const conversationRoutes = require('./routes/conversationRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const path = require('path');
+const institutionRoutes = require('./routes/institutionRoutes');
+const userRoutes = require('./routes/userRoutes');
+const hostelMediaRoutes = require('./routes/hostelMediaRoutes');
 
 app.use(express.json()); // lets Express read JSON request bodies
 
@@ -32,6 +36,10 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // serves uploaded photos
+app.use('/api/institutions', institutionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/hostels/:hostelId/media', hostelMediaRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);

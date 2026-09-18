@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/booking_service.dart';
 import '../../theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import '../bookings/my_bookings_screen.dart';
+import '../owner/my_hostels_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -11,19 +13,15 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: authProvider.isLoggedIn
-          ? _LoggedInView(authProvider: authProvider)
-          : const _GuestView(),
+      body: authProvider.isLoggedIn ? _LoggedInView(authProvider: authProvider) : const _GuestView(),
     );
   }
 }
 
 class _GuestView extends StatelessWidget {
   const _GuestView();
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -35,18 +33,12 @@ class _GuestView extends StatelessWidget {
           const SizedBox(height: 16),
           Text('You are browsing as a guest', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(
-            'Log in to message owners and agents, make bookings, or post your own listings.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text('Log in to message owners and agents, make bookings, or post your own listings.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
-              },
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen())),
               child: const Text('Log In or Register'),
             ),
           ),
@@ -56,9 +48,30 @@ class _GuestView extends StatelessWidget {
   }
 }
 
-class _LoggedInView extends StatelessWidget {
+class _LoggedInView extends StatefulWidget {
   final AuthProvider authProvider;
   const _LoggedInView({required this.authProvider});
+
+  @override
+  State<_LoggedInView> createState() => _LoggedInViewState();
+}
+
+class _LoggedInViewState extends State<_LoggedInView> {
+  final BookingService _bookingService = BookingService();
+  int _pendingCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.authProvider.currentUser?.role == 'hostel_owner') _loadPendingCount();
+  }
+
+  Future<void> _loadPendingCount() async {
+    try {
+      final count = await _bookingService.fetchPendingCount();
+      if (mounted) setState(() => _pendingCount = count);
+    } catch (_) {}
+  }
 
   String _roleLabel(String role) {
     switch (role) {
@@ -73,7 +86,7 @@ class _LoggedInView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = authProvider.currentUser!;
+    final user = widget.authProvider.currentUser!;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -84,10 +97,7 @@ class _LoggedInView extends StatelessWidget {
           CircleAvatar(
             radius: 34,
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            child: Text(
-              user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.primary),
-            ),
+            child: Text(user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.primary)),
           ),
           const SizedBox(height: 14),
           Text(user.fullName, style: Theme.of(context).textTheme.headlineSmall),
@@ -100,33 +110,35 @@ class _LoggedInView extends StatelessWidget {
               icon: Icons.receipt_long_outlined,
               title: 'My Bookings',
               subtitle: 'View reservations and leave reviews',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const MyBookingsScreen()),
-                );
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyBookingsScreen())),
+            )
+          else if (user.role == 'hostel_owner')
+            _DashboardTile(
+              icon: Icons.apartment_outlined,
+              title: 'My Hostels',
+              subtitle: 'Manage rooms, bookings, and availability',
+              badgeCount: _pendingCount,
+              onTap: () async {
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyHostelsScreen()));
+                _loadPendingCount();
               },
             )
           else
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: const [
-                    Icon(Icons.dashboard_outlined, color: AppColors.textSecondary),
-                    SizedBox(width: 12),
-                    Expanded(child: Text('Your role dashboard is coming soon')),
-                  ],
-                ),
+                child: Row(children: [
+                  const Icon(Icons.dashboard_outlined, color: AppColors.textSecondary),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('Your role dashboard is coming soon')),
+                ]),
               ),
             ),
 
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => authProvider.logout(),
-              child: const Text('Log Out'),
-            ),
+            child: OutlinedButton(onPressed: () => widget.authProvider.logout(), child: const Text('Log Out')),
           ),
         ],
       ),
@@ -139,13 +151,9 @@ class _DashboardTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final int badgeCount;
 
-  const _DashboardTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+  const _DashboardTile({required this.icon, required this.title, required this.subtitle, required this.onTap, this.badgeCount = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +176,13 @@ class _DashboardTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (badgeCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(12)),
+                  child: Text('$badgeCount new', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
               const Icon(Icons.chevron_right, color: AppColors.textSecondary),
             ],
           ),

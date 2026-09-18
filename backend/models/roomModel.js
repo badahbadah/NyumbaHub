@@ -11,10 +11,7 @@ async function createRoom({ hostel_id, room_type, price_amount, price_period, to
 }
 
 async function getRoomsByHostelId(hostel_id) {
-  const result = await pool.query(
-    'SELECT * FROM rooms WHERE hostel_id = $1 ORDER BY created_at DESC',
-    [hostel_id]
-  );
+  const result = await pool.query('SELECT * FROM rooms WHERE hostel_id = $1 ORDER BY created_at DESC', [hostel_id]);
   return result.rows;
 }
 
@@ -23,4 +20,12 @@ async function getRoomById(id) {
   return result.rows[0];
 }
 
-module.exports = { createRoom, getRoomsByHostelId, getRoomById };
+async function updateAvailableBeds(id, available_beds) {
+  const result = await pool.query(
+    'UPDATE rooms SET available_beds = $1 WHERE id = $2 RETURNING *',
+    [available_beds, id]
+  );
+  return result.rows[0];
+}
+
+module.exports = { createRoom, getRoomsByHostelId, getRoomById, updateAvailableBeds };

@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import '../../models/hostel.dart';
 import '../../models/room.dart';
 import '../../models/review.dart';
+import '../../models/hostel_media.dart';
 import '../../services/room_service.dart';
 import '../../services/review_service.dart';
+import '../../services/hostel_media_service.dart';
+import '../../services/conversation_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/auth_gate.dart';
 import '../bookings/payment_pending_screen.dart';
 import '../reviews/review_form_screen.dart';
+import '../messages/chat_screen.dart';
 import '../../services/booking_service.dart';
 
 class HostelDetailScreen extends StatefulWidget {
@@ -21,11 +25,15 @@ class HostelDetailScreen extends StatefulWidget {
 class _HostelDetailScreenState extends State<HostelDetailScreen> {
   final RoomService _roomService = RoomService();
   final ReviewService _reviewService = ReviewService();
+  final HostelMediaService _mediaService = HostelMediaService();
+  final ConversationService _conversationService = ConversationService();
 
   List<Room> _rooms = [];
+  List<HostelMedia> _photos = [];
   ReviewAverages? _averages;
   List<Review> _reviews = [];
   bool _isLoading = true;
+  bool _isMessaging = false;
   String? _error;
 
   @override
@@ -39,10 +47,12 @@ class _HostelDetailScreenState extends State<HostelDetailScreen> {
     try {
       final rooms = await _roomService.fetchRooms(widget.hostel.id);
       final reviewData = await _reviewService.fetchReviews(widget.hostel.id);
+      final photos = await _mediaService.fetchMedia(widget.hostel.id);
       setState(() {
         _rooms = rooms;
         _averages = reviewData['averages'];
         _reviews = reviewData['reviews'];
+        _photos = photos;
         _isLoading = false;
       });
     } catch (e) {
@@ -53,9 +63,38 @@ class _HostelDetailScreenState extends State<HostelDetailScreen> {
   Future<void> _onReserve(Room room) async {
     final ok = await requireAuth(context, reason: 'Log in to reserve a bed');
     if (!ok || !mounted) return;
-
-    // ignore: use_build_context_synchronously
     _showReserveSheet(room);
+  }
+
+  Future<void> _onMessageOwner() async {
+    final ok = await requireAuth(context, reason: 'Log in to message the hostel owner');
+    if (!ok || !mounted) return;
+
+    setState(() => _isMessaging = true);
+    try {
+      final result = await _conversationService.startOrSend(
+        recipientId: widget.hostel.ownerId,
+        relatedType: 'hostel',
+        relatedId: widget.hostel.id,
+        messageText: 'Hi, I\'m interested in ${widget.hostel.name}.',
+      );
+      final conversationId = result['conversation']['id'];
+      if (mounted) {
+        setState(() => _isMessaging = false);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(conversationId: conversationId, otherUserName: 'Hostel Owner'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isMessaging = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    }
   }
 
   void _showReserveSheet(Room room) {
@@ -190,50 +229,93 @@ class _HostelDetailScreenState extends State<HostelDetailScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.zero,
                     children: [
-                      if (hostel.description != null && hostel.description!.isNotEmpty)
-                        Text(hostel.description!, style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 20),
-                      Text('Rooms', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 12),
-                      if (isFull)
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'This hostel is currently full. Check back later.',
-                            style: TextStyle(color: AppColors.danger),
+                      if (_photos.isNotEmpty)
+                        SizedBox(
+                          height: 220,
+                          child: PageView.builder(
+                            itemCount: _photos.length,
+                            itemBuilder: (context, index) => Image.network(
+                              _photos[index].fullUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: AppColors.divider,
+                                child: const Icon(Icons.broken_image_outlined, color: AppColors.textSecondary),
+                              ),
+                            ),
                           ),
                         )
-                      else if (_rooms.isEmpty)
-                        const Text('No rooms listed yet.')
                       else
-                        ..._rooms.map((room) => _RoomTile(
-                              room: room,
-                              onReserve: () => _onReserve(room),
-                            )),
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Reviews', style: Theme.of(context).textTheme.titleLarge),
-                          TextButton(onPressed: _onLeaveReview, child: const Text('Leave a Review')),
-                        ],
-                      ),
-                      if (_averages != null && _averages!.reviewCount > 0) ...[
-                        const SizedBox(height: 8),
-                        _RatingSummary(averages: _averages!),
-                        const SizedBox(height: 16),
-                        ..._reviews.map((r) => _ReviewTile(review: r)),
-                      ] else
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text('No reviews yet — be the first to share your experience.'),
+                        Container(
+                          height: 160,
+                          color: AppColors.divider,
+                          child: const Center(child: Icon(Icons.apartment, size: 48, color: AppColors.textSecondary)),
                         ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: hostel.description != null && hostel.description!.isNotEmpty
+                                      ? Text(hostel.description!, style: Theme.of(context).textTheme.bodyMedium)
+                                      : const SizedBox(),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _isMessaging ? null : _onMessageOwner,
+                                  icon: _isMessaging
+                                      ? const SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Icon(Icons.chat_bubble_outline, size: 16),
+                                  label: const Text('Message'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Text('Rooms', style: Theme.of(context).textTheme.titleLarge),
+                            const SizedBox(height: 12),
+                            if (isFull)
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: AppColors.danger.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'This hostel is currently full. Check back later.',
+                                  style: TextStyle(color: AppColors.danger),
+                                ),
+                              )
+                            else if (_rooms.isEmpty)
+                              const Text('No rooms listed yet.')
+                            else
+                              ..._rooms.map((room) => _RoomTile(
+                                    room: room,
+                                    onReserve: () => _onReserve(room),
+                                  )),
+                            const SizedBox(height: 28),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Reviews', style: Theme.of(context).textTheme.titleLarge),
+                                TextButton(onPressed: _onLeaveReview, child: const Text('Leave a Review')),
+                              ],
+                            ),
+                            if (_averages != null && _averages!.reviewCount > 0) ...[
+                              const SizedBox(height: 8),
+                              _RatingSummary(averages: _averages!),
+                              const SizedBox(height: 16),
+                              ..._reviews.map((r) => _ReviewTile(review: r)),
+                            ] else
+                              const Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: Text('No reviews yet \u2014 be the first to share your experience.'),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -351,7 +433,7 @@ class _ReviewTile extends StatelessWidget {
             Text(review.comment!, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 4),
           Text(
-            'Water ${review.waterRating} · Power ${review.electricityRating} · Safety ${review.safetyRating} · Response ${review.responsivenessRating}',
+            'Water ${review.waterRating} \u00b7 Power ${review.electricityRating} \u00b7 Safety ${review.safetyRating} \u00b7 Response ${review.responsivenessRating}',
             style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
           const Divider(height: 20),
