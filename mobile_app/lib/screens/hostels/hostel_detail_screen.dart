@@ -13,6 +13,7 @@ import '../bookings/payment_pending_screen.dart';
 import '../reviews/review_form_screen.dart';
 import '../messages/chat_screen.dart';
 import '../../services/booking_service.dart';
+import '../../widgets/photo_slideshow.dart';
 
 class HostelDetailScreen extends StatefulWidget {
   final Hostel hostel;
@@ -231,27 +232,10 @@ class _HostelDetailScreenState extends State<HostelDetailScreen> {
                   child: ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      if (_photos.isNotEmpty)
-                        SizedBox(
-                          height: 220,
-                          child: PageView.builder(
-                            itemCount: _photos.length,
-                            itemBuilder: (context, index) => Image.network(
-                              _photos[index].fullUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
-                                color: AppColors.divider,
-                                child: const Icon(Icons.broken_image_outlined, color: AppColors.textSecondary),
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          height: 160,
-                          color: AppColors.divider,
-                          child: const Center(child: Icon(Icons.apartment, size: 48, color: AppColors.textSecondary)),
-                        ),
+                    PhotoSlideshow(
+  imageUrls: _photos.map((p) => p.fullUrl).toList(),
+  height: 240,
+),
                       Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(

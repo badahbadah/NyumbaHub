@@ -6,7 +6,7 @@ class ApiService {
   // Change ONLY this line depending on where you're testing:
   // Android emulator:      http://10.0.2.2:5000/api
   // Physical phone (WiFi): http://YOUR_PC_LAN_IP:5000/api
-  static const String baseUrl = 'http://172.16.17.120:5000/api';
+  static const String baseUrl = 'http://192.168.1.190:5000/api';
 
   // Derived automatically — never edit this separately, it just strips '/api'.
   static String get serverUrl => baseUrl.substring(0, baseUrl.length - 4);

@@ -66,7 +66,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: _conversations.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final conv = _conversations[index];
           final otherId = conv.otherUserId(myId);
