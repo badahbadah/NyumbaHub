@@ -19,10 +19,7 @@ async function getAllRequests({ city, property_type, status } = {}) {
   if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const result = await pool.query(
-    `SELECT * FROM house_wanted_requests ${whereClause} ORDER BY created_at DESC`,
-    values
-  );
+  const result = await pool.query(`SELECT * FROM house_wanted_requests ${whereClause} ORDER BY created_at DESC`, values);
   return result.rows;
 }
 
@@ -39,4 +36,20 @@ async function updateRequestStatus(id, status) {
   return result.rows[0];
 }
 
-module.exports = { createRequest, getAllRequests, getRequestById, updateRequestStatus };
+async function getRequestsByHunterId(hunter_id) {
+  const result = await pool.query(
+    'SELECT * FROM house_wanted_requests WHERE hunter_id = $1 ORDER BY created_at DESC',
+    [hunter_id]
+  );
+  return result.rows;
+}
+
+async function deleteRequest(id) {
+  const result = await pool.query('DELETE FROM house_wanted_requests WHERE id = $1 RETURNING *', [id]);
+  return result.rows[0];
+}
+
+module.exports = {
+  createRequest, getAllRequests, getRequestById, updateRequestStatus,
+  getRequestsByHunterId, deleteRequest,
+};

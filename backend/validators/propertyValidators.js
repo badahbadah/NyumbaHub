@@ -17,4 +17,19 @@ const createPropertySchema = z.object({
   is_paved: z.boolean().optional(),
 });
 
-module.exports = { createPropertySchema };
+const updatePropertySchema = z.object({
+  listing_type: z.enum(['rent', 'sale']).optional(),
+  property_type: z.enum(['house', 'apartment', 'shop', 'land']).optional(),
+  city: z.string().min(2).optional(),
+  area: z.string().optional(),
+  bedrooms: z.coerce.number().int().nonnegative().optional(),
+  bathrooms: z.coerce.number().int().nonnegative().optional(),
+  price_amount: z.coerce.number().positive().optional(),
+  price_period: z.string().optional(),
+  description: z.string().optional(),
+  is_fenced: z.boolean().optional(),
+  has_water_tank: z.boolean().optional(),
+  is_paved: z.boolean().optional(),
+});
+
+module.exports = { createPropertySchema, updatePropertySchema };

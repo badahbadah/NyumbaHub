@@ -1,4 +1,8 @@
-const { createRequest, getAllRequests, getRequestById, updateRequestStatus } = require('../models/requestModel');
+const {
+  createRequest, getAllRequests, getRequestById, updateRequestStatus,
+  getRequestsByHunterId, deleteRequest,
+} = require('../models/requestModel');
+const { hasAcceptedMatchForRequest } = require('../models/matchModel');
 
 exports.create = async (req, res) => {
   try {
@@ -9,13 +13,7 @@ exports.create = async (req, res) => {
     }
 
     const request = await createRequest({
-      hunter_id: req.user.id,
-      property_type,
-      target_area,
-      city,
-      budget_amount,
-      budget_period,
-      notes,
+      hunter_id: req.user.id, property_type, target_area, city, budget_amount, budget_period, notes,
     });
 
     res.status(201).json({ message: 'Request broadcast successfully', request });
@@ -36,22 +34,47 @@ exports.list = async (req, res) => {
   }
 };
 
+exports.listMine = async (req, res) => {
+  try {
+    const requests = await getRequestsByHunterId(req.user.id);
+    res.json({ requests });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong while fetching your requests' });
+  }
+};
+
 exports.close = async (req, res) => {
   try {
     const { id } = req.params;
-
     const request = await getRequestById(id);
-    if (!request) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-    if (request.hunter_id !== req.user.id) {
-      return res.status(403).json({ error: 'You can only close your own request' });
-    }
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    if (request.hunter_id !== req.user.id) return res.status(403).json({ error: 'You can only close your own request' });
 
     const updated = await updateRequestStatus(id, 'closed');
     res.json({ message: 'Request closed', request: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong while closing the request' });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await getRequestById(id);
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    if (request.hunter_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own request' });
+
+    const hasAccepted = await hasAcceptedMatchForRequest(id);
+    if (hasAccepted) {
+      return res.status(409).json({ error: 'This request has an accepted offer and cannot be deleted' });
+    }
+
+    await deleteRequest(id);
+    res.json({ message: 'Request deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong while deleting the request' });
   }
 };
