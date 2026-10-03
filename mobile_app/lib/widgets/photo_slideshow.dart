@@ -99,7 +99,7 @@ class _PhotoSlideshowState extends State<PhotoSlideshow> {
               widget.imageUrls[index],
               fit: BoxFit.cover,
               width: double.infinity,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 color: AppColors.divider,
                 child: const Icon(Icons.broken_image_outlined, color: AppColors.textSecondary),
               ),

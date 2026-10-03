@@ -39,6 +39,7 @@ async function updateMatchStatus(id, status) {
 async function getMatchesByAgentId(agent_id) {
   const result = await pool.query(
     `SELECT property_matches.*,
+            house_wanted_requests.hunter_id AS hunter_id,
             house_wanted_requests.city AS request_city,
             house_wanted_requests.property_type AS request_property_type,
             house_wanted_requests.budget_amount,

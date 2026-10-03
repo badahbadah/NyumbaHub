@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/booking_service.dart';
+import '../../services/match_service.dart';
 import '../../theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import '../bookings/my_bookings_screen.dart';
 import '../owner/my_hostels_screen.dart';
+import '../agent/my_listings_screen.dart';
+import '../agent/browse_requests_screen.dart';
+import '../agent/my_matches_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -58,17 +62,27 @@ class _LoggedInView extends StatefulWidget {
 
 class _LoggedInViewState extends State<_LoggedInView> {
   final BookingService _bookingService = BookingService();
+  final MatchService _matchService = MatchService();
   int _pendingCount = 0;
 
   @override
   void initState() {
     super.initState();
-    if (widget.authProvider.currentUser?.role == 'hostel_owner') _loadPendingCount();
+    final role = widget.authProvider.currentUser?.role;
+    if (role == 'hostel_owner') _loadOwnerPendingCount();
+    if (role == 'agent') _loadMatchPendingCount();
   }
 
-  Future<void> _loadPendingCount() async {
+  Future<void> _loadOwnerPendingCount() async {
     try {
       final count = await _bookingService.fetchPendingCount();
+      if (mounted) setState(() => _pendingCount = count);
+    } catch (_) {}
+  }
+
+  Future<void> _loadMatchPendingCount() async {
+    try {
+      final count = await _matchService.fetchPendingCount();
       if (mounted) setState(() => _pendingCount = count);
     } catch (_) {}
   }
@@ -120,10 +134,35 @@ class _LoggedInViewState extends State<_LoggedInView> {
               badgeCount: _pendingCount,
               onTap: () async {
                 await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyHostelsScreen()));
-                _loadPendingCount();
+                _loadOwnerPendingCount();
               },
             )
-          else
+          else if (user.role == 'agent') ...[
+            _DashboardTile(
+              icon: Icons.home_work_outlined,
+              title: 'My Listings',
+              subtitle: 'Create, edit, and manage your property listings',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen())),
+            ),
+            const SizedBox(height: 12),
+            _DashboardTile(
+              icon: Icons.campaign_outlined,
+              title: 'Browse Requests',
+              subtitle: 'See what house hunters are looking for',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BrowseRequestsScreen())),
+            ),
+            const SizedBox(height: 12),
+            _DashboardTile(
+              icon: Icons.local_offer_outlined,
+              title: 'My Offers',
+              subtitle: 'Track matches you\'ve submitted',
+              badgeCount: _pendingCount,
+              onTap: () async {
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyMatchesScreen()));
+                _loadMatchPendingCount();
+              },
+            ),
+          ] else
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -181,7 +220,7 @@ class _DashboardTile extends StatelessWidget {
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(12)),
-                  child: Text('$badgeCount new', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                  child: Text('$badgeCount', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
               const Icon(Icons.chevron_right, color: AppColors.textSecondary),
             ],

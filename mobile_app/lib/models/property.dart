@@ -1,7 +1,8 @@
 class Property {
   final int id;
-  final String listingType; // rent | sale
-  final String propertyType; // house | apartment | shop | land
+  final int agentId;
+  final String listingType;
+  final String propertyType;
   final String city;
   final String? area;
   final int? bedrooms;
@@ -12,10 +13,11 @@ class Property {
   final bool isFenced;
   final bool hasWaterTank;
   final bool isPaved;
-  final String status; // available | taken
+  final String status;
 
   Property({
     required this.id,
+    required this.agentId,
     required this.listingType,
     required this.propertyType,
     required this.city,
@@ -34,6 +36,7 @@ class Property {
   factory Property.fromJson(Map<String, dynamic> json) {
     return Property(
       id: json['id'],
+      agentId: json['agent_id'],
       listingType: json['listing_type'],
       propertyType: json['property_type'],
       city: json['city'],
